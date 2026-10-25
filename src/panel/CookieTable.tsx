@@ -19,6 +19,7 @@ interface Column {
   id: ColumnId;
   label: string;
   width: number;
+  right?: boolean;
   sortValue: (c: Cookie) => string | number;
   text: (c: Cookie) => string;
 }
@@ -44,6 +45,7 @@ const COLUMNS: Column[] = [
     id: "domain",
     label: "Domain",
     width: 150,
+    right: true,
     sortValue: (c) => c.domain,
     text: (c) => c.domain,
   },
@@ -69,6 +71,7 @@ const COLUMNS: Column[] = [
     id: "size",
     label: "Size",
     width: 50,
+    right: true,
     sortValue: cookieSize,
     text: (c) => String(cookieSize(c)),
   },
@@ -208,6 +211,7 @@ export function CookieTable({
             {COLUMNS.map((c) => (
               <th
                 key={c.id}
+                class={c.right ? "right" : ""}
                 onClick={() =>
                   onSort({
                     id: c.id,
@@ -237,7 +241,11 @@ export function CookieTable({
                 onMouseDown={() => onSelect(key)}
               >
                 {COLUMNS.map((col) => (
-                  <td key={col.id} title={col.text(c)}>
+                  <td
+                    key={col.id}
+                    class={col.right ? "right" : ""}
+                    title={col.text(c)}
+                  >
                     {col.text(c)}
                   </td>
                 ))}

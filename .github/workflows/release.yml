@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  crx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+
+      # A fixed signing key keeps the extension ID stable across releases.
+      - name: Pack CRX
+        env:
+          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ -z "$CRX_PRIVATE_KEY" ]; then
+            echo "::error::Secret CRX_PRIVATE_KEY is not set (PEM private key used to sign the CRX)"
+            exit 1
+          fi
+          umask 077
+          printf '%s\n' "$CRX_PRIVATE_KEY" > "$RUNNER_TEMP/key.pem"
+          npx --yes crx3@1 -p "$RUNNER_TEMP/key.pem" -o "cookie-editor-$TAG.crx" dist
+          rm -f "$RUNNER_TEMP/key.pem"
+
+      - name: Upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          (cd dist && zip -qr "../cookie-editor-$TAG.zip" .)
+          gh release upload "$TAG" "cookie-editor-$TAG.crx" "cookie-editor-$TAG.zip" --clobber

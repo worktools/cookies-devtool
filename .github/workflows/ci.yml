@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # puppeteer-core is only used by the screenshot script and downloads no browser.
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build

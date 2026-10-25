@@ -297,6 +297,10 @@ th svg {
   cursor: col-resize;
   z-index: 1;
 }
+th.right,
+td.right {
+  text-align: right;
+}
 th.filler,
 td.filler {
   border-right: 0;
