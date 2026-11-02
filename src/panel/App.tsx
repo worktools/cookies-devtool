@@ -33,7 +33,10 @@ export function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [detailHeight, setDetailHeight] = useState(260);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    cookies: Cookie[];
+    message: string;
+  } | null>(null);
   const { ctx, cookies, loading, error, reload } = useCookieData(scope);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -78,16 +81,20 @@ export function App() {
   };
 
   const deleteOne = (c: Cookie) =>
-    run(async () => {
-      await removeCookie(c);
-      if (selected === cookieKey(c)) setSelected(null);
+    setPendingDelete({
+      cookies: [c],
+      message: `Delete cookie "${c.name}" (domain: ${c.domain}, path: ${c.path})?`,
     });
 
-  const deleteAllShown = () => {
-    setConfirmClear(false);
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    const targets = pendingDelete.cookies;
+    setPendingDelete(null);
     run(async () => {
-      await Promise.all(visible.map(removeCookie));
-      setSelected(null);
+      await Promise.all(targets.map(removeCookie));
+      setSelected((current) =>
+        targets.some((c) => cookieKey(c) === current) ? null : current,
+      );
     });
   };
 
@@ -150,7 +157,14 @@ export function App() {
             filter.trim() ? "Delete all filtered cookies" : "Delete all cookies"
           }
           disabled={!visible.length}
-          onClick={() => setConfirmClear(true)}
+          onClick={() =>
+            setPendingDelete({
+              cookies: [...visible],
+              message: filter.trim()
+                ? `Delete ${visible.length} filtered cookies?`
+                : `Delete all ${visible.length} cookies?`,
+            })
+          }
         >
           <ClearIcon />
         </button>
@@ -202,18 +216,13 @@ export function App() {
         </a>
       </div>
 
-      {confirmClear && (
-        <div class="banner confirm">
-          <span>
-            {filter.trim()
-              ? `Delete ${visible.length} filtered cookies?`
-              : `Delete all ${visible.length} cookies?`}
-          </span>
-          <span class="spacer" />
-          <button class="danger" onClick={deleteAllShown}>
+      {pendingDelete && (
+        <div class="banner confirm" role="alert">
+          <span>{pendingDelete.message}</span>
+          <button class="danger" onClick={confirmDelete}>
             Delete
           </button>
-          <button onClick={() => setConfirmClear(false)}>Cancel</button>
+          <button onClick={() => setPendingDelete(null)}>Cancel</button>
         </div>
       )}
 
