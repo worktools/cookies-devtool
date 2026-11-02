@@ -130,7 +130,16 @@ export function App() {
   const bannerError = error ?? actionError;
 
   return (
-    <div class="app">
+    <div
+      class="app"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && showDetail) {
+          e.preventDefault();
+          e.stopPropagation();
+          setSelected(null);
+        }
+      }}
+    >
       <div class="toolbar">
         <button class="icon-btn" title="Refresh" onClick={reload}>
           <RefreshIcon />
