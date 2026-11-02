@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { CookieDetail } from "./CookieDetail";
 import { CookieTable, sortCookies, type SortState } from "./CookieTable";
 import {
@@ -33,9 +33,16 @@ export function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [detailHeight, setDetailHeight] = useState(260);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    cookies: Cookie[];
+    message: string;
+  } | null>(null);
   const { ctx, cookies, loading, error, reload } = useCookieData(scope);
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    setPendingDelete(null);
+  }, [ctx?.url]);
 
   const visible = useMemo(() => {
     const match = buildFilter(filter);
@@ -78,16 +85,20 @@ export function App() {
   };
 
   const deleteOne = (c: Cookie) =>
-    run(async () => {
-      await removeCookie(c);
-      if (selected === cookieKey(c)) setSelected(null);
+    setPendingDelete({
+      cookies: [c],
+      message: `Delete cookie "${c.name}" (domain: ${c.domain}, path: ${c.path})?`,
     });
 
-  const deleteAllShown = () => {
-    setConfirmClear(false);
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    const targets = pendingDelete.cookies;
+    setPendingDelete(null);
     run(async () => {
-      await Promise.all(visible.map(removeCookie));
-      setSelected(null);
+      await Promise.all(targets.map(removeCookie));
+      setSelected((current) =>
+        targets.some((c) => cookieKey(c) === current) ? null : current,
+      );
     });
   };
 
@@ -123,7 +134,17 @@ export function App() {
   const bannerError = error ?? actionError;
 
   return (
-    <div class="app">
+    <div
+      class="app"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && showDetail) {
+          e.preventDefault();
+          e.stopPropagation();
+          setSelected(null);
+          bodyRef.current?.querySelector<HTMLElement>(".table-wrap")?.focus();
+        }
+      }}
+    >
       <div class="toolbar">
         <button class="icon-btn" title="Refresh" onClick={reload}>
           <RefreshIcon />
@@ -150,7 +171,14 @@ export function App() {
             filter.trim() ? "Delete all filtered cookies" : "Delete all cookies"
           }
           disabled={!visible.length}
-          onClick={() => setConfirmClear(true)}
+          onClick={() =>
+            setPendingDelete({
+              cookies: [...visible],
+              message: filter.trim()
+                ? `Delete ${visible.length} filtered cookies?`
+                : `Delete all ${visible.length} cookies?`,
+            })
+          }
         >
           <ClearIcon />
         </button>
@@ -202,18 +230,13 @@ export function App() {
         </a>
       </div>
 
-      {confirmClear && (
-        <div class="banner confirm">
-          <span>
-            {filter.trim()
-              ? `Delete ${visible.length} filtered cookies?`
-              : `Delete all ${visible.length} cookies?`}
-          </span>
-          <span class="spacer" />
-          <button class="danger" onClick={deleteAllShown}>
+      {pendingDelete && (
+        <div class="banner confirm" role="alert">
+          <span>{pendingDelete.message}</span>
+          <button class="danger" onClick={confirmDelete}>
             Delete
           </button>
-          <button onClick={() => setConfirmClear(false)}>Cancel</button>
+          <button onClick={() => setPendingDelete(null)}>Cancel</button>
         </div>
       )}
 

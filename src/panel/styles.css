@@ -217,7 +217,11 @@ input:disabled {
   flex: 1;
 }
 .banner.confirm > span:first-child {
-  flex: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.banner.confirm > button {
+  flex-shrink: 0;
 }
 
 /* Layout */

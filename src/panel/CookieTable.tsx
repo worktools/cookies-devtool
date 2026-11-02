@@ -30,7 +30,7 @@ const COLUMNS: Column[] = [
   {
     id: "name",
     label: "Name",
-    width: 160,
+    width: 280,
     sortValue: (c) => c.name,
     text: (c) => c.name,
   },
@@ -70,7 +70,7 @@ const COLUMNS: Column[] = [
   {
     id: "size",
     label: "Size",
-    width: 50,
+    width: 80,
     right: true,
     sortValue: cookieSize,
     text: (c) => String(cookieSize(c)),
