@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { CookieDetail } from "./CookieDetail";
 import { CookieTable, sortCookies, type SortState } from "./CookieTable";
 import {
@@ -39,6 +39,10 @@ export function App() {
   } | null>(null);
   const { ctx, cookies, loading, error, reload } = useCookieData(scope);
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    setPendingDelete(null);
+  }, [ctx?.url]);
 
   const visible = useMemo(() => {
     const match = buildFilter(filter);
@@ -137,6 +141,7 @@ export function App() {
           e.preventDefault();
           e.stopPropagation();
           setSelected(null);
+          bodyRef.current?.querySelector<HTMLElement>(".table-wrap")?.focus();
         }
       }}
     >
